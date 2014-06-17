@@ -48,7 +48,8 @@ $(document).ready(function() {
           //limiting to 30 messages instead of full data['results'].length
           for (var i=0; i<data['results'].length; i++) {
             var msg=data['results'][i];
-            var post=msg.username+" ("+msg.roomname+") "+msg.createdAt+": "+msg.text;
+
+            var post=msg.username+" ("+msg.roomname+") "+moment(msg.createdAt).format('lll')+": "+msg.text;
             post=app.escape(post);
             post='<li>'+post+'</li>';
             $('.messages').append(post);

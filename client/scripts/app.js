@@ -1,5 +1,5 @@
 $(document).ready(function() {
-
+  var roomName;
   var app={
     server: 'https://api.parse.com/1/classes/chatterbox/',
     init: function() {
@@ -22,12 +22,24 @@ $(document).ready(function() {
         }
       });
     },
-    fetch: function() {
+    fetch: function(room) {
+      if (room===undefined) {
+        var dataFilter={
+          order: '-createdAt'
+        };
+      } else {
+        var dataFilter={
+          order: '-createdAt',
+          where: '{"roomname": "'+room+'"}'
+        };
+      }
+
       $.ajax({
         // always use this url
-        //url: 'https://api.parse.com/1/classes/chatterbox/',
-        url:  'https://api.parse.com/1/classes/chatterbox?order=-createdAt',
+        //url:  'https://api.parse.com/1/classes/chatterbox?order=-createdAt',
+        url:  'https://api.parse.com/1/classes/chatterbox',
         type: 'GET',
+        data: dataFilter,
         contentType: 'application/json',
         // data: 'data:-createdAt',
         success: function (data) {
@@ -36,7 +48,7 @@ $(document).ready(function() {
           //limiting to 30 messages instead of full data['results'].length
           for (var i=0; i<data['results'].length; i++) {
             var msg=data['results'][i];
-            var post=msg.username+"\n"+msg.createdAt+": "+msg.text;
+            var post=msg.username+" ("+msg.roomname+") "+msg.createdAt+": "+msg.text;
             post=app.escape(post);
             post='<li>'+post+'</li>';
             $('.messages').append(post);
@@ -62,8 +74,6 @@ $(document).ready(function() {
         '@': 'NO!',
         '$': 'NO!',
         '%': 'NO!',
-        '(': 'NO!',
-        ')': 'NO!',
         '=': 'NO!',
         '+': 'NO!',
         '{': 'NO!',
@@ -90,7 +100,7 @@ $(document).ready(function() {
 
   //create an event listener for the 'refresh messages' button
   $('#refreshButton').on('click', function() {
-    app.fetch();
+    app.fetch(roomName);
   });
 
   //allow user to send message
@@ -100,14 +110,17 @@ $(document).ready(function() {
     var message={};
     message.username=window.location.search.slice(10);
     message.text=$('#messageInput').val();
-    message.roomname=undefined;
+    message.roomname=roomName;
     app.send(message);
     setTimeout(function() {
-      app.fetch();
+      app.fetch(roomName);
     }, 500);
   });
 
-  console.log(app.escape('<<this is a && test>> @#%&#$&*$%^*'))
+  $('#roomButton').on('click', function() {
+    roomName=$('#roomInput').val();
+    app.fetch(roomName);
+  });
 
 });
 

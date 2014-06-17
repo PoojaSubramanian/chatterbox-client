@@ -1,5 +1,6 @@
 $(document).ready(function() {
   var roomName;
+  var friends={};
   var app={
     server: 'https://api.parse.com/1/classes/chatterbox/',
     init: function() {
@@ -44,15 +45,22 @@ $(document).ready(function() {
         // data: 'data:-createdAt',
         success: function (data) {
           console.log('chatterbox: Message received');
-          $('li').remove();
+          $('.post').remove();
           //limiting to 30 messages instead of full data['results'].length
           for (var i=0; i<data['results'].length; i++) {
             var msg=data['results'][i];
 
-            var post=msg.username+" ("+msg.roomname+") "+moment(msg.createdAt).format('lll')+": "+msg.text;
-            post=app.escape(post);
-            post='<li>'+post+'</li>';
-            $('.messages').append(post);
+            var post=msg.username+' ['+msg.roomname+'] '+moment(msg.createdAt).format('lll')+': '+msg.text;
+            //post=app.escape(post);
+            if (msg.username===undefined) {
+              var nameClass='anonymous';
+            } else {
+              var nameClass=msg.username.split(" ").join();
+            }
+            //post='<div class="post '+nameClass+'">'+post+'</div>';
+            var el = $('<div class="post '+nameClass+'">');
+            el.text(post);
+            $('.messages').append(el);
           }
 
         },
@@ -66,7 +74,7 @@ $(document).ready(function() {
 
     escape: function(input) {
       var tagsToReplace = {
-        '&': 'NO!',
+        '&': '&amp',
         '<': 'NO!',
         '>': 'NO!',
         '"': 'NO!',
@@ -79,8 +87,8 @@ $(document).ready(function() {
         '+': 'NO!',
         '{': 'NO!',
         '}': 'NO!',
-        '[': 'NO!',
-        ']': 'NO!',
+        '(': 'NO!',
+        ')': 'NO!',
         '\\': 'NO!'
       };
 
@@ -89,7 +97,19 @@ $(document).ready(function() {
       };
 
       var safeTagsReplace = function(str) {
-        return str.replace(/[&<>\"\'\`\@\$\%\(\)\=\+\{\}\[\]\\]/g, replaceTag);
+        console.log(str)
+        var newStr='';
+        for (var l=0; l<str.length; l++) {
+          var letter=str[l];
+          // if(letter === '(' || letter === ')'){
+          //   letter = 'STOP IT!'
+          // }
+          if ((tagsToReplace[letter]===undefined)) {
+            newStr+=letter;
+          }
+        }
+        return newStr;
+        //return str.replace(/[\(\)&<>\"\'\`\@\$\%\=\+\{\}\[\]\\]/g, replaceTag);
       };
 
       return safeTagsReplace(input);
@@ -102,6 +122,9 @@ $(document).ready(function() {
   //create an event listener for the 'refresh messages' button
   $('#refreshButton').on('click', function() {
     app.fetch(roomName);
+    setTimeout(function() {
+      highlightFriends();
+    }, 200);
   });
 
   //allow user to send message
@@ -115,13 +138,34 @@ $(document).ready(function() {
     app.send(message);
     setTimeout(function() {
       app.fetch(roomName);
-    }, 500);
+    }, 200);
+    setTimeout(function() {
+      highlightFriends();
+    }, 400);
   });
 
+  //switches to roomname selected by user
   $('#roomButton').on('click', function() {
     roomName=$('#roomInput').val();
     app.fetch(roomName);
+    setTimeout(function() {
+      highlightFriends();
+    }, 200);  });
+
+  //adds friend to friend list
+  $('.messages').on('click', 'div', function() {
+    if(confirm('Add '+this.classList[1]+' to your friend list?') && !(this.id in friends)) {
+      friends[this.classList[1]]=1;
+    }
+    highlightFriends();
   });
+
+  //bolds all friend posts
+  var highlightFriends=function() {
+    for (var friend in friends) {
+      $('.'+friend).css('font-weight','bold');
+    }
+  };
 
 });
 

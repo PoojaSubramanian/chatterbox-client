@@ -4,21 +4,44 @@ $(document).ready(function() {
   var app={
     server: 'https://api.parse.com/1/classes/chatterbox/',
     init: function() {
+      //Load page and refresh
+      app.fetch(roomName);
+      setInterval(function() {
+        console.log('test');
+        app.fetch(roomName);
+      }, 1000);
+
 
     },
+
+    render: function(data){
+      $('.post').remove();
+      //limiting to 30 messages instead of full data['results'].length
+      for (var i=0; i<data.results.length; i++) {
+        var msg=data.results[i];
+        //concat all parts of the chat message and put in our format ('username'-['roomname']-'date-time'-'message')
+        var post=msg.username+' ['+msg.roomname+'] '+moment(msg.createdAt).format('lll')+': '+msg.text;
+        if (msg.username===undefined) {
+          var nameClass='anonymous';
+        } else {
+          var nameClass=msg.username.split(" ").join();
+        }
+        var el = $('<div class="post '+nameClass+'">');
+        el.text(post);
+        $('.messages').append(el);
+      }
+    },
+
     send: function(message) {
       $.ajax({
-        // always use this url
         url: 'https://api.parse.com/1/classes/chatterbox',
         type: 'POST',
         data: JSON.stringify(message),
         contentType: 'application/json',
         success: function (data) {
-          console.log(data);
           console.log('chatterbox: Message sent');
         },
         error: function (data) {
-          // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
           console.error('chatterbox: Failed to send message');
         }
       });
@@ -36,87 +59,32 @@ $(document).ready(function() {
       }
 
       $.ajax({
-        // always use this url
-        //url:  'https://api.parse.com/1/classes/chatterbox?order=-createdAt',
         url:  'https://api.parse.com/1/classes/chatterbox',
         type: 'GET',
         data: dataFilter,
         contentType: 'application/json',
-        // data: 'data:-createdAt',
         success: function (data) {
           console.log('chatterbox: Message received');
-          $('.post').remove();
-          //limiting to 30 messages instead of full data['results'].length
-          for (var i=0; i<data['results'].length; i++) {
-            var msg=data['results'][i];
-
-            var post=msg.username+' ['+msg.roomname+'] '+moment(msg.createdAt).format('lll')+': '+msg.text;
-            //post=app.escape(post);
-            if (msg.username===undefined) {
-              var nameClass='anonymous';
-            } else {
-              var nameClass=msg.username.split(" ").join();
-            }
-            //post='<div class="post '+nameClass+'">'+post+'</div>';
-            var el = $('<div class="post '+nameClass+'">');
-            el.text(post);
-            $('.messages').append(el);
-          }
-
+          app.render(data);
+          app.highlightFriends();
         },
         error: function (data) {
-          // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
           console.error('chatterbox: Failed to get message');
         }
       });
-
     },
-
-    escape: function(input) {
-      var tagsToReplace = {
-        '&': '&amp',
-        '<': 'NO!',
-        '>': 'NO!',
-        '"': 'NO!',
-        "'": 'NO!',
-        '`': 'NO!',
-        '@': 'NO!',
-        '$': 'NO!',
-        '%': 'NO!',
-        '=': 'NO!',
-        '+': 'NO!',
-        '{': 'NO!',
-        '}': 'NO!',
-        '(': 'NO!',
-        ')': 'NO!',
-        '\\': 'NO!'
-      };
-
-      var replaceTag = function(tag) {
-        return tagsToReplace[tag] || tag;
-      };
-
-      var safeTagsReplace = function(str) {
-        console.log(str)
-        var newStr='';
-        for (var l=0; l<str.length; l++) {
-          var letter=str[l];
-          // if(letter === '(' || letter === ')'){
-          //   letter = 'STOP IT!'
-          // }
-          if ((tagsToReplace[letter]===undefined)) {
-            newStr+=letter;
-          }
-        }
-        return newStr;
-        //return str.replace(/[\(\)&<>\"\'\`\@\$\%\=\+\{\}\[\]\\]/g, replaceTag);
-      };
-
-      return safeTagsReplace(input);
+    highlightFriends: function() {
+      for (var friend in friends) {
+        $('.'+friend).css('font-weight','bold');
+      }
     }
+
   };
 
-  //load message
+  app.init();
+
+  /*
+  //load initial messages
   app.fetch();
 
   //create an event listener for the 'refresh messages' button
@@ -166,6 +134,7 @@ $(document).ready(function() {
       $('.'+friend).css('font-weight','bold');
     }
   };
+  */
 
 });
 
